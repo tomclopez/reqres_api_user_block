@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - reqres_api_user_block
+  theme:
+    - olivero
+id: reqres_users_block_default
+theme: olivero
+region: content
+weight: 0
+provider: null
+plugin: reqres_users_block
+settings:
+  id: reqres_users_block
+  label: 'ReqRes Users'
+  label_display: visible
+  provider: reqres_api_user_block
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'
