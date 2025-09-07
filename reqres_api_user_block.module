@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * @file
+ * Contains reqres_api_user_block.module.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function reqres_api_user_block_theme() {
+  return [
+    'reqres_users_list' => [
+      'variables' => [
+        'result' => NULL,
+        'table' => NULL,
+      ],
+      'template' => 'reqres-users-list',
+    ],
+    'reqres_users_empty' => [
+      'variables' => [
+        'message' => NULL,
+      ],
+      'template' => 'reqres-users-empty',
+    ],
+  ];
+}

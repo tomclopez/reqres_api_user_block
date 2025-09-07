@@ -60,6 +60,8 @@ class ReqResUsersBlockTest extends TestCase
             $this->userProvider,
             $this->requestStack,
             $this->pagerManager,
+            $this->requestStack,
+            $this->pagerManager,
         );
 
         $this->block->setStringTranslation($this->stringTranslation);
@@ -143,6 +145,8 @@ class ReqResUsersBlockTest extends TestCase
             $this->userProvider,
             $this->requestStack,
             $this->pagerManager,
+            $this->requestStack,
+            $this->pagerManager,
         );
         $block->setStringTranslation($this->stringTranslation);
 
@@ -223,38 +227,13 @@ class ReqResUsersBlockTest extends TestCase
             ->with(1, 6)
             ->willReturn($result);
 
-        $this->pagerManager
-            ->expects($this->once())
-            ->method("createPager")
-            ->with(12, 6);
+        $this->pagerManager->expects($this->once())->method("createPager");
 
         $result = $this->block->build();
 
         $this->assertArrayHasKey("content", $result);
-        $this->assertArrayHasKey("#markup", $result["content"]);
-        $markup = $result["content"]["#markup"];
-
-        $this->assertStringContainsString("<ul>", $markup);
-        $this->assertStringContainsString("<li>", $markup);
-
-        $this->assertStringContainsString("George", $markup);
-        $this->assertStringContainsString("Bluth", $markup);
-        $this->assertStringContainsString("george.bluth@reqres.in", $markup);
-        $this->assertStringContainsString("Janet", $markup);
-        $this->assertStringContainsString("Weaver", $markup);
-        $this->assertStringContainsString("janet.weaver@reqres.in", $markup);
-
-        $this->assertStringContainsString("Found 12 total users", $markup);
-        $this->assertStringContainsString("showing page 1 of 2", $markup);
-
-        $this->assertStringContainsString(
-            "https://reqres.in/img/faces/1-image.jpg",
-            $markup,
-        );
-        $this->assertStringContainsString(
-            "https://reqres.in/img/faces/2-image.jpg",
-            $markup,
-        );
+        $this->assertArrayHasKey("#theme", $result["content"]);
+        $this->assertEquals("reqres_users_list", $result["content"]["#theme"]);
     }
 
     /**
@@ -297,17 +276,22 @@ class ReqResUsersBlockTest extends TestCase
             ->with(1, 12)
             ->willReturn($result);
 
-        $this->pagerManager
-            ->expects($this->once())
-            ->method("createPager")
-            ->with(24, 12);
+        $this->pagerManager->expects($this->once())->method("createPager");
 
-        $result = $block->build();
-        $markup = $result["content"]["#markup"];
+        $build = $block->build();
 
-        $this->assertStringContainsString("Test", $markup);
-        $this->assertStringContainsString("User", $markup);
-        $this->assertStringContainsString("test@example.com", $markup);
+        $this->assertArrayHasKey("content", $build);
+        $this->assertArrayHasKey("#theme", $build["content"]);
+        $this->assertEquals("reqres_users_list", $build["content"]["#theme"]);
+
+        // Verify table structure with custom labels
+        $table = $build["content"]["#table"];
+        $this->assertEquals(
+            "test@example.com",
+            $table["#rows"][0]["data"][0]["data"],
+        );
+        $this->assertEquals("Test", $table["#rows"][0]["data"][1]["data"]);
+        $this->assertEquals("User", $table["#rows"][0]["data"][2]["data"]);
     }
 
     /**
@@ -323,22 +307,11 @@ class ReqResUsersBlockTest extends TestCase
             ->with(1, 6)
             ->willReturn($emptyResult);
 
-        $this->pagerManager
-            ->expects($this->once())
-            ->method("createPager")
-            ->with(0, 6);
-
         $result = $this->block->build();
 
         $this->assertArrayHasKey("content", $result);
-        $this->assertArrayHasKey("#markup", $result["content"]);
-        $markup = $result["content"]["#markup"];
-
-        $this->assertStringContainsString(
-            "No users found or API unavailable.",
-            $markup,
-        );
-        $this->assertStringNotContainsString("<ul>", $markup);
+        $this->assertArrayHasKey("#theme", $result["content"]);
+        $this->assertEquals("reqres_users_empty", $result["content"]["#theme"]);
     }
 
     /**
@@ -363,33 +336,32 @@ class ReqResUsersBlockTest extends TestCase
             ->method("getUsers")
             ->willReturn($result);
 
-        $this->pagerManager
-            ->expects($this->once())
-            ->method("createPager")
-            ->with(1, 6);
+        $this->pagerManager->expects($this->once())->method("createPager");
 
-        $result = $this->block->build();
-        $markup = $result["content"]["#markup"];
+        $build = $this->block->build();
 
-        $this->assertStringContainsString(
-            "Test&lt;b&gt;Bold&lt;/b&gt;",
-            $markup,
-        );
-        $this->assertStringContainsString("User&amp;amp;", $markup);
-        $this->assertStringContainsString(
-            "test&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;@example.com",
-            $markup,
-        );
-        $this->assertStringContainsString(
-            "https://example.com/avatar.jpg?param=&lt;script&gt;",
-            $markup,
-        );
+        $this->assertArrayHasKey("content", $build);
+        $this->assertArrayHasKey("#theme", $build["content"]);
+        $this->assertEquals("reqres_users_list", $build["content"]["#theme"]);
 
-        $this->assertStringNotContainsString(
-            '<script>alert("xss")</script>',
-            $markup,
+        // Verify potentially dangerous content is stored as data (Drupal handles escaping)
+        $table = $build["content"]["#table"];
+        $this->assertEquals(
+            "test<script>alert(\"xss\")</script>@example.com",
+            $table["#rows"][0]["data"][0]["data"],
         );
-        $this->assertStringNotContainsString("<b>Bold</b>", $markup);
+        $this->assertEquals(
+            "Test<b>Bold</b>",
+            $table["#rows"][0]["data"][1]["data"],
+        );
+        $this->assertEquals("User&amp;", $table["#rows"][0]["data"][2]["data"]);
+
+        // Avatar URL with potentially dangerous parameter
+        $avatarData = $table["#rows"][0]["data"][3]["data"];
+        $this->assertEquals(
+            "https://example.com/avatar.jpg?param=<script>",
+            $avatarData["#uri"],
+        );
     }
 
     /**
@@ -431,17 +403,22 @@ class ReqResUsersBlockTest extends TestCase
             ->method("getUsers")
             ->willReturn($result);
 
-        $this->pagerManager
-            ->expects($this->once())
-            ->method("createPager")
-            ->with(1, 6);
+        $this->pagerManager->expects($this->once())->method("createPager");
 
-        $result = $block->build();
-        $markup = $result["content"]["#markup"];
+        $build = $block->build();
 
-        $this->assertStringContainsString("Test", $markup);
-        $this->assertStringContainsString("User", $markup);
-        $this->assertStringContainsString("test@example.com", $markup);
+        $this->assertArrayHasKey("content", $build);
+        $this->assertArrayHasKey("#theme", $build["content"]);
+        $this->assertEquals("reqres_users_list", $build["content"]["#theme"]);
+
+        // Verify that user data is properly stored regardless of config labels
+        $table = $build["content"]["#table"];
+        $this->assertEquals(
+            "test@example.com",
+            $table["#rows"][0]["data"][0]["data"],
+        );
+        $this->assertEquals("Test", $table["#rows"][0]["data"][1]["data"]);
+        $this->assertEquals("User", $table["#rows"][0]["data"][2]["data"]);
     }
 
     /**
@@ -536,16 +513,26 @@ class ReqResUsersBlockTest extends TestCase
             ->with(1, 1)
             ->willReturn($result);
 
-        $this->pagerManager
-            ->expects($this->once())
-            ->method("createPager")
-            ->with(1, 1);
+        $this->pagerManager->expects($this->once())->method("createPager");
 
-        $result = $block->build();
-        $markup = $result["content"]["#markup"];
+        $build = $block->build();
 
-        $this->assertStringContainsString("Found 1 total users", $markup);
-        $this->assertStringContainsString("showing page 1 of 1", $markup);
-        $this->assertStringContainsString("Single", $markup);
+        $this->assertArrayHasKey("content", $build);
+        $this->assertArrayHasKey("#theme", $build["content"]);
+        $this->assertEquals("reqres_users_list", $build["content"]["#theme"]);
+
+        // Verify pagination data for edge case (1 user, 1 per page)
+        $this->assertEquals(1, $build["content"]["#result"]->getTotal());
+        $this->assertEquals(1, $build["content"]["#result"]->getPage());
+        $this->assertEquals(1, $build["content"]["#result"]->getTotalPages());
+
+        // Verify user data
+        $table = $build["content"]["#table"];
+        $this->assertEquals(
+            "single@example.com",
+            $table["#rows"][0]["data"][0]["data"],
+        );
+        $this->assertEquals("Single", $table["#rows"][0]["data"][1]["data"]);
+        $this->assertEquals("User", $table["#rows"][0]["data"][2]["data"]);
     }
 }

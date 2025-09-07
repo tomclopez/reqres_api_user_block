@@ -1,0 +1,5 @@
+reqres-users-block:
+  version: 1.x
+  css:
+    theme:
+      css/reqres-users-block.css: {}

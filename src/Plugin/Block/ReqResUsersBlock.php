@@ -185,9 +185,9 @@ class ReqResUsersBlock extends BlockBase implements
         $this->pagerManager->createPager($total_items, $items_per_page);
 
         $build = [];
-        $build["content"] = [
-            "#markup" => $this->buildUserList($result, $config),
-        ];
+        $build["content"] = $this->buildUserList($result, $config);
+        $build["#attached"]["library"][] =
+            "reqres_api_user_block/reqres-users-block";
 
         if ($result->getTotalPages() > 1) {
             $build["pager"] = [
@@ -198,48 +198,61 @@ class ReqResUsersBlock extends BlockBase implements
         return $build;
     }
 
-    private function buildUserList($result, $config): string
+    private function buildUserList($result, $config): array
     {
-        $output = '<div class="reqres-users-block">';
-        $output .= "<h3>ReqRes Users</h3>";
-
         if ($result->isEmpty()) {
-            $output .= "<p>No users found or API unavailable.</p>";
-        } else {
-            $output .=
-                "<p>Found " .
-                $result->getTotal() .
-                " total users (showing page " .
-                $result->getPage() .
-                " of " .
-                $result->getTotalPages() .
-                "):</p>";
-            $output .= "<ul>";
-
-            foreach ($result->getUsers() as $user) {
-                $output .= "<li>";
-                $output .=
-                    '<img src="' .
-                    htmlspecialchars($user->getAvatarUrl()) .
-                    '" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px; vertical-align: middle;">';
-                $output .=
-                    "<strong>" .
-                    htmlspecialchars($user->getFirstName()) .
-                    " " .
-                    htmlspecialchars($user->getLastName()) .
-                    "</strong><br>";
-                $output .=
-                    "<small>" .
-                    htmlspecialchars($user->getEmail()) .
-                    "</small>";
-                $output .= "</li>";
-            }
-
-            $output .= "</ul>";
+            return [
+                "#theme" => "reqres_users_empty",
+                "#message" => $this->t("No users found or API unavailable."),
+            ];
         }
 
-        $output .= "</div>";
+        $header = [
+            ["data" => $config["email_label"], "class" => "email-header"],
+            ["data" => $config["forename_label"], "class" => "forename-header"],
+            ["data" => $config["surname_label"], "class" => "surname-header"],
+            ["data" => $this->t("Avatar"), "class" => "avatar-header"],
+        ];
 
-        return $output;
+        $rows = [];
+        foreach ($result->getUsers() as $user) {
+            $rows[] = [
+                "data" => [
+                    ["data" => $user->getEmail(), "class" => "email-cell"],
+                    [
+                        "data" => $user->getFirstName(),
+                        "class" => "forename-cell",
+                    ],
+                    ["data" => $user->getLastName(), "class" => "surname-cell"],
+                    [
+                        "data" => [
+                            "#theme" => "image",
+                            "#uri" => $user->getAvatarUrl(),
+                            "#alt" => $this->t("Avatar for @name", [
+                                "@name" =>
+                                    $user->getFirstName() .
+                                    " " .
+                                    $user->getLastName(),
+                            ]),
+                            "#attributes" => ["class" => ["user-avatar"]],
+                        ],
+                        "class" => "avatar-cell",
+                    ],
+                ],
+                "class" => "user-row",
+            ];
+        }
+
+        return [
+            "#theme" => "reqres_users_list",
+            "#result" => $result,
+            "#table" => [
+                "#theme" => "table",
+                "#header" => $header,
+                "#rows" => $rows,
+                "#attributes" => ["class" => ["reqres-users-table"]],
+                "#empty" => $this->t("No users found."),
+            ],
+        ];
     }
 }

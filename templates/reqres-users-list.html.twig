@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * Default theme implementation for ReqRes users list.
+ *
+ * Available variables:
+ * - result: The UserProviderResult object containing user data and pagination info.
+ * - table: The table render array with user data.
+ *
+ * @see template_preprocess_reqres_users_list()
+ *
+ * @ingroup themeable
+ */
+#}
+<div class="reqres-users-block">
+  <div class="users-info">
+    <p>
+      {% trans %}
+        Found {{ result.total }} total users (showing page {{ result.page }} of {{ result.totalPages }})
+      {% endtrans %}
+    </p>
+  </div>
+
+  <div class="users-table-wrapper">
+    {{ table }}
+  </div>
+</div>

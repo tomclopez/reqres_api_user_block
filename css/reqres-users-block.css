@@ -1,0 +1,39 @@
+.reqres-users-block {
+  margin: 1rem 0;
+}
+
+.reqres-users-block .users-info {
+  margin-bottom: 1rem;
+  font-style: italic;
+  color: #666;
+}
+
+.reqres-users-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.reqres-users-table th,
+.reqres-users-table td {
+  padding: 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.reqres-users-table th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+}
+
+.reqres-users-table .user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.reqres-users-empty .empty-message {
+  padding: 1rem;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
