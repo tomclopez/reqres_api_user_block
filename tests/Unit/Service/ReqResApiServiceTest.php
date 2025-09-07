@@ -72,12 +72,11 @@ class ReqResApiServiceTest extends TestCase
 
         $result = $this->apiService->getUsers();
 
-        $this->assertEquals($responseData, $result);
-        $this->assertEquals(1, $result["page"]);
-        $this->assertEquals(6, $result["per_page"]);
-        $this->assertEquals(12, $result["total"]);
-        $this->assertCount(2, $result["data"]);
-        $this->assertEquals("George", $result["data"][0]["first_name"]);
+        $this->assertEquals(1, $result->getPage());
+        $this->assertEquals(6, $result->getPerPage());
+        $this->assertEquals(12, $result->getTotal());
+        $this->assertCount(2, $result->getUsers());
+        $this->assertEquals("George", $result->getUsers()[0]->getFirstName());
     }
 
     /**
@@ -98,16 +97,11 @@ class ReqResApiServiceTest extends TestCase
 
         $result = $this->apiService->getUsers();
 
-        $this->assertEquals(
-            [
-                "page" => 1,
-                "per_page" => 6,
-                "total" => 0,
-                "total_pages" => 0,
-                "data" => [],
-            ],
-            $result,
-        );
+        $this->assertEquals(1, $result->getPage());
+        $this->assertEquals(6, $result->getPerPage());
+        $this->assertEquals(0, $result->getTotal());
+        $this->assertEquals(0, $result->getTotalPages());
+        $this->assertTrue($result->isEmpty());
     }
 
     /**
@@ -127,16 +121,11 @@ class ReqResApiServiceTest extends TestCase
 
         $result = $this->apiService->getUsers();
 
-        $this->assertEquals(
-            [
-                "page" => 1,
-                "per_page" => 6,
-                "total" => 0,
-                "total_pages" => 0,
-                "data" => [],
-            ],
-            $result,
-        );
+        $this->assertEquals(1, $result->getPage());
+        $this->assertEquals(6, $result->getPerPage());
+        $this->assertEquals(0, $result->getTotal());
+        $this->assertEquals(0, $result->getTotalPages());
+        $this->assertTrue($result->isEmpty());
     }
 
     /**
@@ -156,15 +145,11 @@ class ReqResApiServiceTest extends TestCase
 
         $result = $this->apiService->getUsers(3, 10);
 
-        $expected = [
-            "page" => 3,
-            "per_page" => 10,
-            "total" => 0,
-            "total_pages" => 0,
-            "data" => [],
-        ];
-
-        $this->assertEquals($expected, $result);
+        $this->assertEquals(3, $result->getPage());
+        $this->assertEquals(10, $result->getPerPage());
+        $this->assertEquals(0, $result->getTotal());
+        $this->assertEquals(0, $result->getTotalPages());
+        $this->assertTrue($result->isEmpty());
     }
 
     /**
@@ -184,16 +169,11 @@ class ReqResApiServiceTest extends TestCase
 
         $result = $this->apiService->getUsers();
 
-        $this->assertEquals(
-            [
-                "page" => 1,
-                "per_page" => 6,
-                "total" => 0,
-                "total_pages" => 0,
-                "data" => [],
-            ],
-            $result,
-        );
+        $this->assertEquals(1, $result->getPage());
+        $this->assertEquals(6, $result->getPerPage());
+        $this->assertEquals(0, $result->getTotal());
+        $this->assertEquals(0, $result->getTotalPages());
+        $this->assertTrue($result->isEmpty());
     }
 
     /**
@@ -222,16 +202,11 @@ class ReqResApiServiceTest extends TestCase
 
         $result = $this->apiService->getUsers();
 
-        $this->assertEquals(
-            [
-                "page" => 1,
-                "per_page" => 6,
-                "total" => 0,
-                "total_pages" => 0,
-                "data" => [],
-            ],
-            $result,
-        );
+        $this->assertEquals(1, $result->getPage());
+        $this->assertEquals(6, $result->getPerPage());
+        $this->assertEquals(0, $result->getTotal());
+        $this->assertEquals(0, $result->getTotalPages());
+        $this->assertTrue($result->isEmpty());
     }
 
     /**
@@ -259,16 +234,11 @@ class ReqResApiServiceTest extends TestCase
 
         $result = $this->apiService->getUsers();
 
-        $this->assertEquals(
-            [
-                "page" => 1,
-                "per_page" => 6,
-                "total" => 0,
-                "total_pages" => 0,
-                "data" => [],
-            ],
-            $result,
-        );
+        $this->assertEquals(1, $result->getPage());
+        $this->assertEquals(6, $result->getPerPage());
+        $this->assertEquals(0, $result->getTotal());
+        $this->assertEquals(0, $result->getTotalPages());
+        $this->assertTrue($result->isEmpty());
     }
 
     /**
@@ -300,8 +270,8 @@ class ReqResApiServiceTest extends TestCase
 
         $result = $this->apiService->getUsers(0, 100);
 
-        $this->assertEquals(0, $result["page"]);
-        $this->assertEquals(100, $result["per_page"]);
+        $this->assertEquals(0, $result->getPage());
+        $this->assertEquals(100, $result->getPerPage());
     }
 
     /**

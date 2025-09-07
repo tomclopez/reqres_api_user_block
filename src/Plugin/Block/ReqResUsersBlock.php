@@ -7,7 +7,7 @@ namespace Drupal\reqres_api_user_block\Plugin\Block;
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\reqres_api_user_block\Service\ReqResApiService;
+use Drupal\reqres_api_user_block\Service\UserProviderInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -23,9 +23,9 @@ class ReqResUsersBlock extends BlockBase implements
     ContainerFactoryPluginInterface
 {
     /**
-     * The ReqRes API service.
+     * The user provider service.
      */
-    protected ReqResApiService $reqresApiService;
+    protected UserProviderInterface $userProvider;
 
     /**
      * Constructs a new ReqResUsersBlock instance.
@@ -33,16 +33,16 @@ class ReqResUsersBlock extends BlockBase implements
      * @param array $configuration
      * @param string $plugin_id
      * @param mixed $plugin_definition
-     * @param \Drupal\reqres_api_user_block\Service\ReqResApiService $reqres_api_service
+     * @param \Drupal\reqres_api_user_block\Service\UserProviderInterface $user_provider
      */
     public function __construct(
         array $configuration,
         $plugin_id,
         $plugin_definition,
-        ReqResApiService $reqres_api_service,
+        UserProviderInterface $user_provider,
     ) {
         parent::__construct($configuration, $plugin_id, $plugin_definition);
-        $this->reqresApiService = $reqres_api_service;
+        $this->userProvider = $user_provider;
     }
 
     /**
@@ -58,7 +58,7 @@ class ReqResUsersBlock extends BlockBase implements
             $configuration,
             $plugin_id,
             $plugin_definition,
-            $container->get("reqres_api_user_block.reqres_api_service"),
+            $container->get("reqres_api_user_block.user_provider"),
         );
     }
 
@@ -155,38 +155,40 @@ class ReqResUsersBlock extends BlockBase implements
         $config = $this->getConfiguration();
         $items_per_page = $config["items_per_page"];
 
-        $users_data = $this->reqresApiService->getUsers(1, $items_per_page);
+        $result = $this->userProvider->getUsers(1, $items_per_page);
 
         $output = '<div class="reqres-users-block">';
         $output .= "<h3>ReqRes Users</h3>";
 
-        if (empty($users_data["data"])) {
+        if ($result->isEmpty()) {
             $output .= "<p>No users found or API unavailable.</p>";
         } else {
             $output .=
                 "<p>Found " .
-                $users_data["total"] .
+                $result->getTotal() .
                 " total users (showing page " .
-                $users_data["page"] .
+                $result->getPage() .
                 " of " .
-                $users_data["total_pages"] .
+                $result->getTotalPages() .
                 "):</p>";
             $output .= "<ul>";
 
-            foreach ($users_data["data"] as $user) {
+            foreach ($result->getUsers() as $user) {
                 $output .= "<li>";
                 $output .=
                     '<img src="' .
-                    htmlspecialchars($user["avatar"]) .
+                    htmlspecialchars($user->getAvatarUrl()) .
                     '" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px; vertical-align: middle;">';
                 $output .=
                     "<strong>" .
-                    htmlspecialchars($user["first_name"]) .
+                    htmlspecialchars($user->getFirstName()) .
                     " " .
-                    htmlspecialchars($user["last_name"]) .
+                    htmlspecialchars($user->getLastName()) .
                     "</strong><br>";
                 $output .=
-                    "<small>" . htmlspecialchars($user["email"]) . "</small>";
+                    "<small>" .
+                    htmlspecialchars($user->getEmail()) .
+                    "</small>";
                 $output .= "</li>";
             }
 

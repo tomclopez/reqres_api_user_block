@@ -7,8 +7,10 @@ namespace Drupal\Tests\reqres_api_user_block\Unit\Plugin\Block;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\reqres_api_user_block\Data\User;
 use Drupal\reqres_api_user_block\Plugin\Block\ReqResUsersBlock;
-use Drupal\reqres_api_user_block\Service\ReqResApiService;
+use Drupal\reqres_api_user_block\Service\UserProviderInterface;
+use Drupal\reqres_api_user_block\Service\UserProviderResult;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -17,13 +19,13 @@ use PHPUnit\Framework\TestCase;
  */
 class ReqResUsersBlockTest extends TestCase
 {
-    private ReqResApiService&MockObject $apiService;
+    private UserProviderInterface&MockObject $userProvider;
     private TranslationInterface&MockObject $stringTranslation;
     private ReqResUsersBlock $block;
 
     protected function setUp(): void
     {
-        $this->apiService = $this->createMock(ReqResApiService::class);
+        $this->userProvider = $this->createMock(UserProviderInterface::class);
         $this->stringTranslation = $this->createMock(
             TranslationInterface::class,
         );
@@ -43,7 +45,7 @@ class ReqResUsersBlockTest extends TestCase
             $configuration,
             $plugin_id,
             $plugin_definition,
-            $this->apiService,
+            $this->userProvider,
         );
 
         $this->block->setStringTranslation($this->stringTranslation);
@@ -124,7 +126,7 @@ class ReqResUsersBlockTest extends TestCase
             $custom_config,
             "reqres_users_block",
             [],
-            $this->apiService,
+            $this->userProvider,
         );
         $block->setStringTranslation($this->stringTranslation);
 
@@ -180,34 +182,30 @@ class ReqResUsersBlockTest extends TestCase
      */
     public function testBuildWithUsers(): void
     {
-        $users_data = [
-            "page" => 1,
-            "per_page" => 6,
-            "total" => 12,
-            "total_pages" => 2,
-            "data" => [
-                [
-                    "id" => 1,
-                    "email" => "george.bluth@reqres.in",
-                    "first_name" => "George",
-                    "last_name" => "Bluth",
-                    "avatar" => "https://reqres.in/img/faces/1-image.jpg",
-                ],
-                [
-                    "id" => 2,
-                    "email" => "janet.weaver@reqres.in",
-                    "first_name" => "Janet",
-                    "last_name" => "Weaver",
-                    "avatar" => "https://reqres.in/img/faces/2-image.jpg",
-                ],
-            ],
+        $users = [
+            new User(
+                1,
+                "george.bluth@reqres.in",
+                "George",
+                "Bluth",
+                "https://reqres.in/img/faces/1-image.jpg",
+            ),
+            new User(
+                2,
+                "janet.weaver@reqres.in",
+                "Janet",
+                "Weaver",
+                "https://reqres.in/img/faces/2-image.jpg",
+            ),
         ];
 
-        $this->apiService
+        $result = new UserProviderResult(1, 6, 12, 2, $users);
+
+        $this->userProvider
             ->expects($this->once())
             ->method("getUsers")
             ->with(1, 6)
-            ->willReturn($users_data);
+            ->willReturn($result);
 
         $result = $this->block->build();
 
@@ -253,31 +251,27 @@ class ReqResUsersBlockTest extends TestCase
             $custom_config,
             "reqres_users_block",
             [],
-            $this->apiService,
+            $this->userProvider,
         );
         $block->setStringTranslation($this->stringTranslation);
 
-        $users_data = [
-            "page" => 1,
-            "per_page" => 12,
-            "total" => 24,
-            "total_pages" => 2,
-            "data" => [
-                [
-                    "id" => 1,
-                    "email" => "test@example.com",
-                    "first_name" => "Test",
-                    "last_name" => "User",
-                    "avatar" => "https://example.com/avatar.jpg",
-                ],
-            ],
+        $users = [
+            new User(
+                1,
+                "test@example.com",
+                "Test",
+                "User",
+                "https://example.com/avatar.jpg",
+            ),
         ];
 
-        $this->apiService
+        $result = new UserProviderResult(1, 12, 24, 2, $users);
+
+        $this->userProvider
             ->expects($this->once())
             ->method("getUsers")
             ->with(1, 12)
-            ->willReturn($users_data);
+            ->willReturn($result);
 
         $result = $block->build();
         $markup = $result["#markup"];
@@ -292,19 +286,13 @@ class ReqResUsersBlockTest extends TestCase
      */
     public function testBuildWithNoUsers(): void
     {
-        $empty_data = [
-            "page" => 1,
-            "per_page" => 6,
-            "total" => 0,
-            "total_pages" => 0,
-            "data" => [],
-        ];
+        $emptyResult = new UserProviderResult(1, 6, 0, 0, []);
 
-        $this->apiService
+        $this->userProvider
             ->expects($this->once())
             ->method("getUsers")
             ->with(1, 6)
-            ->willReturn($empty_data);
+            ->willReturn($emptyResult);
 
         $result = $this->block->build();
 
@@ -323,26 +311,22 @@ class ReqResUsersBlockTest extends TestCase
      */
     public function testBuildHtmlEscaping(): void
     {
-        $users_data = [
-            "page" => 1,
-            "per_page" => 6,
-            "total" => 1,
-            "total_pages" => 1,
-            "data" => [
-                [
-                    "id" => 1,
-                    "email" => 'test<script>alert("xss")</script>@example.com',
-                    "first_name" => "Test<b>Bold</b>",
-                    "last_name" => "User&amp;",
-                    "avatar" => "https://example.com/avatar.jpg?param=<script>",
-                ],
-            ],
+        $users = [
+            new User(
+                1,
+                'test<script>alert("xss")</script>@example.com',
+                "Test<b>Bold</b>",
+                "User&amp;",
+                "https://example.com/avatar.jpg?param=<script>",
+            ),
         ];
 
-        $this->apiService
+        $result = new UserProviderResult(1, 6, 1, 1, $users);
+
+        $this->userProvider
             ->expects($this->once())
             ->method("getUsers")
-            ->willReturn($users_data);
+            ->willReturn($result);
 
         $result = $this->block->build();
         $markup = $result["#markup"];
@@ -384,30 +368,26 @@ class ReqResUsersBlockTest extends TestCase
             $malicious_config,
             "reqres_users_block",
             [],
-            $this->apiService,
+            $this->userProvider,
         );
         $block->setStringTranslation($this->stringTranslation);
 
-        $users_data = [
-            "page" => 1,
-            "per_page" => 6,
-            "total" => 1,
-            "total_pages" => 1,
-            "data" => [
-                [
-                    "id" => 1,
-                    "email" => "test@example.com",
-                    "first_name" => "Test",
-                    "last_name" => "User",
-                    "avatar" => "https://example.com/avatar.jpg",
-                ],
-            ],
+        $users = [
+            new User(
+                1,
+                "test@example.com",
+                "Test",
+                "User",
+                "https://example.com/avatar.jpg",
+            ),
         ];
 
-        $this->apiService
+        $result = new UserProviderResult(1, 6, 1, 1, $users);
+
+        $this->userProvider
             ->expects($this->once())
             ->method("getUsers")
-            ->willReturn($users_data);
+            ->willReturn($result);
 
         $result = $block->build();
         $markup = $result["#markup"];
@@ -424,8 +404,8 @@ class ReqResUsersBlockTest extends TestCase
     {
         $container = new ContainerBuilder();
         $container->set(
-            "reqres_api_user_block.reqres_api_service",
-            $this->apiService,
+            "reqres_api_user_block.user_provider",
+            $this->userProvider,
         );
 
         $configuration = [];
@@ -483,31 +463,27 @@ class ReqResUsersBlockTest extends TestCase
             $config,
             "reqres_users_block",
             [],
-            $this->apiService,
+            $this->userProvider,
         );
         $block->setStringTranslation($this->stringTranslation);
 
-        $users_data = [
-            "page" => 1,
-            "per_page" => 1,
-            "total" => 1,
-            "total_pages" => 1,
-            "data" => [
-                [
-                    "id" => 1,
-                    "email" => "single@example.com",
-                    "first_name" => "Single",
-                    "last_name" => "User",
-                    "avatar" => "https://example.com/avatar.jpg",
-                ],
-            ],
+        $users = [
+            new User(
+                1,
+                "single@example.com",
+                "Single",
+                "User",
+                "https://example.com/avatar.jpg",
+            ),
         ];
 
-        $this->apiService
+        $result = new UserProviderResult(1, 1, 1, 1, $users);
+
+        $this->userProvider
             ->expects($this->once())
             ->method("getUsers")
             ->with(1, 1)
-            ->willReturn($users_data);
+            ->willReturn($result);
 
         $result = $block->build();
         $markup = $result["#markup"];
