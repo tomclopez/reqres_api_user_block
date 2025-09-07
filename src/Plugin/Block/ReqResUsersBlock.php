@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\reqres_api_user_block\Plugin\Block;
 
 use Drupal\Core\Block\BlockBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\reqres_api_user_block\Service\ReqResApiService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -64,9 +65,97 @@ class ReqResUsersBlock extends BlockBase implements
     /**
      * {@inheritdoc}
      */
+    public function defaultConfiguration(): array
+    {
+        return [
+            "items_per_page" => 6,
+            "email_label" => "Email",
+            "forename_label" => "First Name",
+            "surname_label" => "Last Name",
+        ] + parent::defaultConfiguration();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function blockForm($form, FormStateInterface $form_state): array
+    {
+        $config = $this->getConfiguration();
+
+        $form["items_per_page"] = [
+            "#type" => "number",
+            "#title" => $this->t("Items per page"),
+            "#description" => $this->t("Number of users to display per page."),
+            "#default_value" => $config["items_per_page"],
+            "#min" => 1,
+            "#max" => 50,
+            "#required" => true,
+        ];
+
+        $form["email_label"] = [
+            "#type" => "textfield",
+            "#title" => $this->t("Email field label"),
+            "#description" => $this->t(
+                "The text to display as the column heading for the email field.",
+            ),
+            "#default_value" => $config["email_label"],
+            "#required" => true,
+            "#maxlength" => 255,
+        ];
+
+        $form["forename_label"] = [
+            "#type" => "textfield",
+            "#title" => $this->t("Forename field label"),
+            "#description" => $this->t(
+                "The text to display as the column heading for the forename field.",
+            ),
+            "#default_value" => $config["forename_label"],
+            "#required" => true,
+            "#maxlength" => 255,
+        ];
+
+        $form["surname_label"] = [
+            "#type" => "textfield",
+            "#title" => $this->t("Surname field label"),
+            "#description" => $this->t(
+                "The text to display as the column heading for the surname field.",
+            ),
+            "#default_value" => $config["surname_label"],
+            "#required" => true,
+            "#maxlength" => 255,
+        ];
+
+        return $form;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function blockSubmit($form, FormStateInterface $form_state): void
+    {
+        $this->configuration["items_per_page"] = (int) $form_state->getValue(
+            "items_per_page",
+        );
+        $this->configuration["email_label"] = $form_state->getValue(
+            "email_label",
+        );
+        $this->configuration["forename_label"] = $form_state->getValue(
+            "forename_label",
+        );
+        $this->configuration["surname_label"] = $form_state->getValue(
+            "surname_label",
+        );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function build(): array
     {
-        $users_data = $this->reqresApiService->getUsers();
+        $config = $this->getConfiguration();
+        $items_per_page = $config["items_per_page"];
+
+        $users_data = $this->reqresApiService->getUsers(1, $items_per_page);
 
         $output = '<div class="reqres-users-block">';
         $output .= "<h3>ReqRes Users</h3>";

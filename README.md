@@ -2,12 +2,16 @@
 
 A Drupal module that provides a configurable block listing users from the ReqRes API (https://reqres.in/).
 
-## Features
+## Usage
 
-- Paginated user listing from https://reqres.in/
-- Configurable labels and items per page
-- Extension points for filtering users
-- Resilient API handling with caching and fallbacks
+1. **Installation**: Install the module via Composer or place in your Drupal modules directory
+2. **Enable Module**: Enable the "ReqRes API User Block" module in Drupal
+   - **The block is automatically placed on the front page** in the content region (Olivero theme)
+3. **View Block**: Visit your site's front page to see the ReqRes Users block in action
+4. **Configure Block** (Optional): Go to Structure > Block Layout and configure the "ReqRes Users" block to customize:
+   - Number of items per page
+   - Column labels
+
 
 ## Development
 
