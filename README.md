@@ -1,6 +1,6 @@
 # ReqRes API User Block
 
-A Drupal module that provides a configurable block listing users from the ReqRes API.
+A Drupal module that provides a configurable block listing users from the ReqRes API (https://reqres.in/).
 
 ## Features
 
@@ -13,14 +13,9 @@ A Drupal module that provides a configurable block listing users from the ReqRes
 
 ### Requirements
 
-- PHP 8.1+
+- PHP 8.3+
+- Drupal 11.0+
 - Composer
-
-### Installation
-
-```bash
-composer install
-```
 
 ### Testing
 
@@ -33,4 +28,3 @@ composer test
 
 # Run all CI checks
 composer ci
-```

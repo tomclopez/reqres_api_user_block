@@ -1,0 +1,4 @@
+services:
+  reqres_api_user_block.reqres_api_service:
+    class: Drupal\reqres_api_user_block\Service\ReqResApiService
+    arguments: ['@http_client']
