@@ -6,9 +6,11 @@ namespace Drupal\reqres_api_user_block\Plugin\Block;
 
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Pager\PagerManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\reqres_api_user_block\Service\UserProviderInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Provides a ReqRes Users block.
@@ -28,21 +30,37 @@ class ReqResUsersBlock extends BlockBase implements
     protected UserProviderInterface $userProvider;
 
     /**
+     * The request stack service.
+     */
+    protected RequestStack $requestStack;
+
+    /**
+     * The pager manager service.
+     */
+    protected PagerManagerInterface $pagerManager;
+
+    /**
      * Constructs a new ReqResUsersBlock instance.
      *
      * @param array $configuration
      * @param string $plugin_id
      * @param mixed $plugin_definition
      * @param \Drupal\reqres_api_user_block\Service\UserProviderInterface $user_provider
+     * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
+     * @param \Drupal\Core\Pager\PagerManagerInterface $pager_manager
      */
     public function __construct(
         array $configuration,
         $plugin_id,
         $plugin_definition,
         UserProviderInterface $user_provider,
+        RequestStack $request_stack,
+        PagerManagerInterface $pager_manager,
     ) {
         parent::__construct($configuration, $plugin_id, $plugin_definition);
         $this->userProvider = $user_provider;
+        $this->requestStack = $request_stack;
+        $this->pagerManager = $pager_manager;
     }
 
     /**
@@ -59,6 +77,8 @@ class ReqResUsersBlock extends BlockBase implements
             $plugin_id,
             $plugin_definition,
             $container->get("reqres_api_user_block.user_provider"),
+            $container->get("request_stack"),
+            $container->get("pager.manager"),
         );
     }
 
@@ -155,8 +175,31 @@ class ReqResUsersBlock extends BlockBase implements
         $config = $this->getConfiguration();
         $items_per_page = $config["items_per_page"];
 
-        $result = $this->userProvider->getUsers(1, $items_per_page);
+        $request = $this->requestStack->getCurrentRequest();
+        $page = (int) $request->query->get("page", 0);
+        $current_page = $page + 1; // Drupal uses 0-based, API uses 1-based
 
+        $result = $this->userProvider->getUsers($current_page, $items_per_page);
+
+        $total_items = $result->getTotal();
+        $this->pagerManager->createPager($total_items, $items_per_page);
+
+        $build = [];
+        $build["content"] = [
+            "#markup" => $this->buildUserList($result, $config),
+        ];
+
+        if ($result->getTotalPages() > 1) {
+            $build["pager"] = [
+                "#type" => "pager",
+            ];
+        }
+
+        return $build;
+    }
+
+    private function buildUserList($result, $config): string
+    {
         $output = '<div class="reqres-users-block">';
         $output .= "<h3>ReqRes Users</h3>";
 
@@ -197,8 +240,6 @@ class ReqResUsersBlock extends BlockBase implements
 
         $output .= "</div>";
 
-        return [
-            "#markup" => $output,
-        ];
+        return $output;
     }
 }

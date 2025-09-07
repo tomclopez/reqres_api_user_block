@@ -6,6 +6,7 @@ namespace Drupal\Tests\reqres_api_user_block\Unit\Plugin\Block;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Pager\PagerManagerInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\reqres_api_user_block\Data\User;
 use Drupal\reqres_api_user_block\Plugin\Block\ReqResUsersBlock;
@@ -13,6 +14,8 @@ use Drupal\reqres_api_user_block\Service\UserProviderInterface;
 use Drupal\reqres_api_user_block\Service\UserProviderResult;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * @coversDefaultClass \Drupal\reqres_api_user_block\Plugin\Block\ReqResUsersBlock
@@ -21,6 +24,8 @@ class ReqResUsersBlockTest extends TestCase
 {
     private UserProviderInterface&MockObject $userProvider;
     private TranslationInterface&MockObject $stringTranslation;
+    private RequestStack&MockObject $requestStack;
+    private PagerManagerInterface&MockObject $pagerManager;
     private ReqResUsersBlock $block;
 
     protected function setUp(): void
@@ -29,8 +34,15 @@ class ReqResUsersBlockTest extends TestCase
         $this->stringTranslation = $this->createMock(
             TranslationInterface::class,
         );
+        $this->requestStack = $this->createMock(RequestStack::class);
+        $this->pagerManager = $this->createMock(PagerManagerInterface::class);
 
         $this->stringTranslation->method("translate")->willReturnArgument(0);
+
+        // Mock request to return page 0 by default
+        $request = new Request();
+        $request->query->set("page", "0");
+        $this->requestStack->method("getCurrentRequest")->willReturn($request);
 
         $configuration = [
             "items_per_page" => 6,
@@ -46,6 +58,8 @@ class ReqResUsersBlockTest extends TestCase
             $plugin_id,
             $plugin_definition,
             $this->userProvider,
+            $this->requestStack,
+            $this->pagerManager,
         );
 
         $this->block->setStringTranslation($this->stringTranslation);
@@ -127,6 +141,8 @@ class ReqResUsersBlockTest extends TestCase
             "reqres_users_block",
             [],
             $this->userProvider,
+            $this->requestStack,
+            $this->pagerManager,
         );
         $block->setStringTranslation($this->stringTranslation);
 
@@ -207,10 +223,16 @@ class ReqResUsersBlockTest extends TestCase
             ->with(1, 6)
             ->willReturn($result);
 
+        $this->pagerManager
+            ->expects($this->once())
+            ->method("createPager")
+            ->with(12, 6);
+
         $result = $this->block->build();
 
-        $this->assertArrayHasKey("#markup", $result);
-        $markup = $result["#markup"];
+        $this->assertArrayHasKey("content", $result);
+        $this->assertArrayHasKey("#markup", $result["content"]);
+        $markup = $result["content"]["#markup"];
 
         $this->assertStringContainsString("<ul>", $markup);
         $this->assertStringContainsString("<li>", $markup);
@@ -252,6 +274,8 @@ class ReqResUsersBlockTest extends TestCase
             "reqres_users_block",
             [],
             $this->userProvider,
+            $this->requestStack,
+            $this->pagerManager,
         );
         $block->setStringTranslation($this->stringTranslation);
 
@@ -273,8 +297,13 @@ class ReqResUsersBlockTest extends TestCase
             ->with(1, 12)
             ->willReturn($result);
 
+        $this->pagerManager
+            ->expects($this->once())
+            ->method("createPager")
+            ->with(24, 12);
+
         $result = $block->build();
-        $markup = $result["#markup"];
+        $markup = $result["content"]["#markup"];
 
         $this->assertStringContainsString("Test", $markup);
         $this->assertStringContainsString("User", $markup);
@@ -294,10 +323,16 @@ class ReqResUsersBlockTest extends TestCase
             ->with(1, 6)
             ->willReturn($emptyResult);
 
+        $this->pagerManager
+            ->expects($this->once())
+            ->method("createPager")
+            ->with(0, 6);
+
         $result = $this->block->build();
 
-        $this->assertArrayHasKey("#markup", $result);
-        $markup = $result["#markup"];
+        $this->assertArrayHasKey("content", $result);
+        $this->assertArrayHasKey("#markup", $result["content"]);
+        $markup = $result["content"]["#markup"];
 
         $this->assertStringContainsString(
             "No users found or API unavailable.",
@@ -328,8 +363,13 @@ class ReqResUsersBlockTest extends TestCase
             ->method("getUsers")
             ->willReturn($result);
 
+        $this->pagerManager
+            ->expects($this->once())
+            ->method("createPager")
+            ->with(1, 6);
+
         $result = $this->block->build();
-        $markup = $result["#markup"];
+        $markup = $result["content"]["#markup"];
 
         $this->assertStringContainsString(
             "Test&lt;b&gt;Bold&lt;/b&gt;",
@@ -369,6 +409,8 @@ class ReqResUsersBlockTest extends TestCase
             "reqres_users_block",
             [],
             $this->userProvider,
+            $this->requestStack,
+            $this->pagerManager,
         );
         $block->setStringTranslation($this->stringTranslation);
 
@@ -389,8 +431,13 @@ class ReqResUsersBlockTest extends TestCase
             ->method("getUsers")
             ->willReturn($result);
 
+        $this->pagerManager
+            ->expects($this->once())
+            ->method("createPager")
+            ->with(1, 6);
+
         $result = $block->build();
-        $markup = $result["#markup"];
+        $markup = $result["content"]["#markup"];
 
         $this->assertStringContainsString("Test", $markup);
         $this->assertStringContainsString("User", $markup);
@@ -407,6 +454,8 @@ class ReqResUsersBlockTest extends TestCase
             "reqres_api_user_block.user_provider",
             $this->userProvider,
         );
+        $container->set("request_stack", $this->requestStack);
+        $container->set("pager.manager", $this->pagerManager);
 
         $configuration = [];
         $plugin_id = "reqres_users_block";
@@ -464,6 +513,8 @@ class ReqResUsersBlockTest extends TestCase
             "reqres_users_block",
             [],
             $this->userProvider,
+            $this->requestStack,
+            $this->pagerManager,
         );
         $block->setStringTranslation($this->stringTranslation);
 
@@ -485,8 +536,13 @@ class ReqResUsersBlockTest extends TestCase
             ->with(1, 1)
             ->willReturn($result);
 
+        $this->pagerManager
+            ->expects($this->once())
+            ->method("createPager")
+            ->with(1, 1);
+
         $result = $block->build();
-        $markup = $result["#markup"];
+        $markup = $result["content"]["#markup"];
 
         $this->assertStringContainsString("Found 1 total users", $markup);
         $this->assertStringContainsString("showing page 1 of 1", $markup);
