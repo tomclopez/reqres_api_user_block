@@ -179,13 +179,14 @@ class ReqResUsersBlockTest extends TestCase
         $form_state = $this->createMock(FormStateInterface::class);
 
         $form_state
-            ->expects($this->exactly(4))
+            ->expects($this->exactly(5))
             ->method("getValue")
             ->willReturnMap([
                 ["items_per_page", null, "10"],
                 ["email_label", null, "Email Address"],
                 ["forename_label", null, "Given Name"],
                 ["surname_label", null, "Family Name"],
+                ["cache_lifetime", null, "600"],
             ]);
 
         $this->block->blockSubmit($form, $form_state);
@@ -195,6 +196,7 @@ class ReqResUsersBlockTest extends TestCase
         $this->assertEquals("Email Address", $config["email_label"]);
         $this->assertEquals("Given Name", $config["forename_label"]);
         $this->assertEquals("Family Name", $config["surname_label"]);
+        $this->assertEquals(600, $config["cache_lifetime"]);
     }
 
     /**
@@ -457,13 +459,14 @@ class ReqResUsersBlockTest extends TestCase
         $form_state = $this->createMock(FormStateInterface::class);
 
         $form_state
-            ->expects($this->exactly(4))
+            ->expects($this->exactly(5))
             ->method("getValue")
             ->willReturnMap([
                 ["items_per_page", null, "25"], // String that should be converted to int
                 ["email_label", null, "Email"],
                 ["forename_label", null, "First Name"],
                 ["surname_label", null, "Last Name"],
+                ["cache_lifetime", null, "900"],
             ]);
 
         $this->block->blockSubmit($form, $form_state);
@@ -471,6 +474,8 @@ class ReqResUsersBlockTest extends TestCase
         $config = $this->block->getConfiguration();
         $this->assertSame(25, $config["items_per_page"]);
         $this->assertTrue(is_int($config["items_per_page"]));
+        $this->assertSame(900, $config["cache_lifetime"]);
+        $this->assertTrue(is_int($config["cache_lifetime"]));
     }
 
     /**

@@ -92,6 +92,7 @@ class ReqResUsersBlock extends BlockBase implements
             "email_label" => "Email",
             "forename_label" => "First Name",
             "surname_label" => "Last Name",
+            "cache_lifetime" => 300,
         ] + parent::defaultConfiguration();
     }
 
@@ -145,6 +146,24 @@ class ReqResUsersBlock extends BlockBase implements
             "#maxlength" => 255,
         ];
 
+        $form["cache_lifetime"] = [
+            "#type" => "select",
+            "#title" => $this->t("Cache lifetime"),
+            "#description" => $this->t(
+                "How long to cache API responses. Longer cache times improve performance but may show stale data.",
+            ),
+            "#default_value" => $config["cache_lifetime"],
+            "#options" => [
+                0 => $this->t("No caching"),
+                60 => $this->t("1 minute"),
+                300 => $this->t("5 minutes"),
+                900 => $this->t("15 minutes"),
+                1800 => $this->t("30 minutes"),
+                3600 => $this->t("1 hour"),
+            ],
+            "#required" => true,
+        ];
+
         return $form;
     }
 
@@ -165,6 +184,9 @@ class ReqResUsersBlock extends BlockBase implements
         $this->configuration["surname_label"] = $form_state->getValue(
             "surname_label",
         );
+        $this->configuration["cache_lifetime"] = (int) $form_state->getValue(
+            "cache_lifetime",
+        );
     }
 
     /**
@@ -179,7 +201,11 @@ class ReqResUsersBlock extends BlockBase implements
         $page = (int) $request->query->get("page", 0);
         $current_page = $page + 1; // Drupal uses 0-based, API uses 1-based
 
-        $result = $this->userProvider->getUsers($current_page, $items_per_page);
+        $result = $this->userProvider->getUsers(
+            $current_page,
+            $items_per_page,
+            $config["cache_lifetime"],
+        );
 
         $total_items = $result->getTotal();
         $this->pagerManager->createPager($total_items, $items_per_page);

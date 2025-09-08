@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\reqres_api_user_block\Unit\Service;
 
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\reqres_api_user_block\Service\ReqResApiService;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\ConnectException;
@@ -20,12 +21,17 @@ use PHPUnit\Framework\TestCase;
 class ReqResApiServiceTest extends TestCase
 {
     private ClientInterface&MockObject $httpClient;
+    private CacheBackendInterface&MockObject $cache;
     private ReqResApiService $apiService;
 
     protected function setUp(): void
     {
         $this->httpClient = $this->createMock(ClientInterface::class);
-        $this->apiService = new ReqResApiService($this->httpClient);
+        $this->cache = $this->createMock(CacheBackendInterface::class);
+        $this->apiService = new ReqResApiService(
+            $this->httpClient,
+            $this->cache,
+        );
     }
 
     /**
@@ -59,6 +65,22 @@ class ReqResApiServiceTest extends TestCase
         ];
 
         $response = new Response(200, [], json_encode($responseData) ?: "");
+
+        $this->cache
+            ->expects($this->once())
+            ->method("get")
+            ->with("reqres_api_users:page_1:per_page_6")
+            ->willReturn(false);
+
+        $this->cache
+            ->expects($this->once())
+            ->method("set")
+            ->with(
+                "reqres_api_users:page_1:per_page_6",
+                $this->anything(),
+                $this->anything(),
+                ["reqres_api_users"],
+            );
 
         $this->httpClient
             ->expects($this->once())
