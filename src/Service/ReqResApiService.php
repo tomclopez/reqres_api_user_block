@@ -6,8 +6,10 @@ namespace Drupal\reqres_api_user_block\Service;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\reqres_api_user_block\Data\User;
+use Drupal\reqres_api_user_block\Event\UserListEvent;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Service for fetching users from ReqRes API.
@@ -22,18 +24,23 @@ class ReqResApiService implements UserProviderInterface
 
     private CacheBackendInterface $cache;
 
+    private EventDispatcherInterface $eventDispatcher;
+
     public function __construct(
         ClientInterface $httpClient,
         CacheBackendInterface $cache,
+        EventDispatcherInterface $eventDispatcher,
     ) {
         $this->httpClient = $httpClient;
         $this->cache = $cache;
+        $this->eventDispatcher = $eventDispatcher;
     }
 
     public function getUsers(
         int $page = 1,
         int $perPage = 6,
         int $cacheLifetime = 300,
+        array $blockConfig = [],
     ): UserProviderResultInterface {
         $cacheKey = "reqres_api_users:page_{$page}:per_page_{$perPage}";
 
@@ -101,12 +108,26 @@ class ReqResApiService implements UserProviderInterface
                 }
             }
 
+            $context = [
+                "page" => $page,
+                "per_page" => $perPage,
+                "total" => $data["total"],
+                "total_pages" => $data["total_pages"],
+                "cache_lifetime" => $cacheLifetime,
+                "block_config" => $blockConfig,
+            ];
+
+            $event = new UserListEvent($users, $context);
+            $this->eventDispatcher->dispatch($event, UserListEvent::NAME);
+
+            $filteredUsers = $event->getUsers();
+
             $result = new UserProviderResult(
                 $data["page"],
                 $data["per_page"],
                 $data["total"],
                 $data["total_pages"],
-                $users,
+                $filteredUsers,
             );
 
             if ($cacheLifetime > 0) {

@@ -12,6 +12,56 @@ A Drupal module that provides a configurable block listing users from the ReqRes
    - Number of items per page
    - Column labels
 
+## Extension Point
+
+This module provides an event-based extension point that allows other modules to filter or modify the user list before display.
+
+### Event: `reqres_api_user_block.users.pre_render`
+
+The `UserListEvent` is dispatched before users are rendered, containing:
+- Array of `User` objects (mutable)
+- Context data: page, per_page, total, cache_lifetime, block_config
+
+### Example EventSubscriber
+
+```php
+<?php
+
+namespace Drupal\my_module\EventSubscriber;
+
+use Drupal\reqres_api_user_block\Event\UserListEvent;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+
+class MyUserFilterSubscriber implements EventSubscriberInterface
+{
+    public static function getSubscribedEvents(): array
+    {
+        return [
+            UserListEvent::NAME => 'filterUsers',
+        ];
+    }
+
+    public function filterUsers(UserListEvent $event): void
+    {
+        // Filter out users with specific email domains
+        $event->filterUsers(function($user) {
+            return !str_ends_with($user->getEmail(), '@exclude.com');
+        });
+    }
+}
+```
+
+Register the subscriber in your module's `services.yml`:
+
+```yaml
+services:
+  my_module.user_filter_subscriber:
+    class: Drupal\my_module\EventSubscriber\MyUserFilterSubscriber
+    tags:
+      - { name: event_subscriber }
+```
+
+See `examples/ExampleUserFilterSubscriber.php` for more advanced filtering examples.
 
 ## Development
 

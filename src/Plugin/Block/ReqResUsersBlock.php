@@ -205,6 +205,7 @@ class ReqResUsersBlock extends BlockBase implements
             $current_page,
             $items_per_page,
             $config["cache_lifetime"],
+            $config,
         );
 
         $total_items = $result->getTotal();

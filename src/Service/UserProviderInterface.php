@@ -10,6 +10,7 @@ interface UserProviderInterface
      * @param int $page
      * @param int $perPage
      * @param int $cacheLifetime
+     * @param array $blockConfig
      *
      * @return UserProviderResultInterface
      */
@@ -17,5 +18,6 @@ interface UserProviderInterface
         int $page = 1,
         int $perPage = 6,
         int $cacheLifetime = 300,
+        array $blockConfig = [],
     ): UserProviderResultInterface;
 }

@@ -1,4 +1,4 @@
 services:
   reqres_api_user_block.user_provider:
     class: Drupal\reqres_api_user_block\Service\ReqResApiService
-    arguments: ["@http_client", "@cache.default"]
+    arguments: ["@http_client", "@cache.default", "@event_dispatcher"]

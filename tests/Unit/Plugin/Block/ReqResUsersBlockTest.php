@@ -60,8 +60,6 @@ class ReqResUsersBlockTest extends TestCase
             $this->userProvider,
             $this->requestStack,
             $this->pagerManager,
-            $this->requestStack,
-            $this->pagerManager,
         );
 
         $this->block->setStringTranslation($this->stringTranslation);
@@ -143,8 +141,6 @@ class ReqResUsersBlockTest extends TestCase
             "reqres_users_block",
             [],
             $this->userProvider,
-            $this->requestStack,
-            $this->pagerManager,
             $this->requestStack,
             $this->pagerManager,
         );
